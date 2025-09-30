@@ -99,14 +99,221 @@ random_craft = get_random_craft()
 time_estimate = estimate_craft_time(["paper_airplane", "origami_crane"])
 ```
 
+## Integration with LangChain Ollama
+
+This MCP server can be integrated with LangChain and Ollama to provide AI models with craft tool capabilities. Here's how to set up and use the integration:
+
+### Prerequisites
+
+First, install the required dependencies using `uv`:
+
+```bash
+# Install mcp-use library and LangChain Ollama
+uv add mcp-use langchain-ollama
+```
+
+### Quick Start with Example File
+
+We've included a working example at `langchain_mcp_example.py` that demonstrates proper MCP integration using mcp-use with LangChain and Ollama:
+
+```bash
+# 1. Make sure Ollama is running with a suitable model
+ollama pull llama3.2
+
+# 2. Install required dependencies
+uv add mcp-use langchain-ollama
+
+# 3. Run the example
+uv run python langchain_mcp_example.py
+```
+
+The example provides both an interactive chat mode and a demo mode with sample queries.
+
+**Features**:
+
+- ✅ **Proper MCP Integration**: Uses `mcp-use` library for authentic MCP client communication
+- ✅ **LangChain + Ollama**: Integrates with LangChain and Ollama for flexible LLM usage  
+- ✅ **Tool Calling**: AI automatically uses appropriate craft tools based on queries
+- ✅ **Async Support**: Full async/await support for better performance
+
+### Setting Up the MCP Client with mcp-use
+
+Create a Python script to connect to your MCP server using mcp-use:
+
+```python
+import asyncio
+from mcp_use import MCPAgent, MCPClient
+from langchain_ollama import ChatOllama
+
+async def main():
+    # Create MCP server configuration for our craft tool
+    config = {
+        "mcpServers": {
+            "craft": {
+                "command": "uv",
+                "args": ["run", "python", "craft_tool.py"]
+            }
+        }
+    }
+    
+    # Create MCP client
+    client = MCPClient.from_dict(config)
+    
+    # Create LLM
+    llm = ChatOllama(model="llama3.1", temperature=0.3)
+    
+    # Create agent with the client
+    agent = MCPAgent(
+        llm=llm, 
+        client=client, 
+        max_steps=10,
+        verbose=True
+    )
+    
+    try:
+        # Run a query - the AI will automatically use craft tools
+        result = await agent.run("I have some paper and 20 minutes. What craft can I make?")
+        print("AI Response:", result)
+        
+    finally:
+        # Clean up resources
+        await client.close_all_sessions()
+
+# Run the async function
+if __name__ == "__main__":
+    asyncio.run(main())
+```
+
+### Advanced Usage with Streaming
+
+Here's a more comprehensive example showing streaming responses:
+
+```python
+import asyncio
+from mcp_use import MCPAgent, MCPClient
+from langchain_ollama import ChatOllama
+
+async def craft_assistant_with_streaming():
+    """Create a craft assistant with streaming responses."""
+    
+    # Set up MCP configuration
+    config = {
+        "mcpServers": {
+            "craft": {
+                "command": "uv",
+                "args": ["run", "python", "craft_tool.py"]
+            }
+        }
+    }
+    
+    client = MCPClient.from_dict(config)
+    llm = ChatOllama(model="llama3.1", temperature=0.3)
+    
+    agent = MCPAgent(
+        llm=llm, 
+        client=client, 
+        max_steps=10,
+        verbose=True
+    )
+    
+    try:
+        query = """
+        I'm looking for craft projects. Can you help me find:
+        1. All available crafts
+        2. Easy crafts suitable for beginners  
+        3. Something I can make with just paper
+        """
+        
+        print("🤔 Processing your request...")
+        print("-" * 50)
+        
+        # Stream the response
+        async for chunk in agent.stream(query):
+            if "messages" in chunk:
+                print(chunk["messages"], end="", flush=True)
+        
+        print("\n" + "-" * 50)
+        print("✅ Response completed!")
+        
+    finally:
+        await client.close_all_sessions()
+
+# Run the craft assistant
+if __name__ == "__main__":
+    asyncio.run(craft_assistant_with_streaming())
+```
+
+### Configuration Tips
+
+1. **Server Startup**: Ensure your MCP server is properly configured to start. You can test this by running:
+
+   ```bash
+   uv run python craft_tool.py
+   ```
+
+2. **Model Selection**: Choose an Ollama model that supports function calling well. Recommended models:
+   - `llama3.1` (8B or larger)
+   - `mistral`
+   - `codellama`
+
+3. **Error Handling**: Add proper error handling for network issues and tool execution failures:
+
+```python
+import logging
+from mcp_use import MCPAgent, MCPClient
+from langchain_ollama import ChatOllama
+
+async def robust_mcp_interaction():
+    client = None
+    try:
+        config = {
+            "mcpServers": {
+                "craft": {
+                    "command": "uv",
+                    "args": ["run", "python", "craft_tool.py"]
+                }
+            }
+        }
+        
+        client = MCPClient.from_dict(config)
+        llm = ChatOllama(model="llama3.1")
+        
+        agent = MCPAgent(llm=llm, client=client, max_steps=10)
+        
+        result = await agent.run("What crafts are available?")
+        print(f"Success: {result}")
+        
+    except Exception as e:
+        logging.error(f"MCP integration error: {e}")
+        print("Failed to connect to MCP server. Make sure craft_tool.py can be executed.")
+    
+    finally:
+        if client:
+            await client.close_all_sessions()
+```
+
+### Example Queries
+
+Once integrated, you can ask the AI assistant natural language questions like:
+
+- "What crafts can I make with paper and scissors?"
+- "Show me all easy crafts that take less than 30 minutes"
+- "I want to learn origami. What do you recommend?"
+- "Give me step-by-step instructions for making a friendship bracelet"
+- "What materials do I need for a painted rock project?"
+
+The AI will automatically use the appropriate MCP tools to search, filter, and retrieve craft information to answer your questions.
+
 ## Testing
 
 Run the comprehensive test suite:
+
 ```bash
 uv run pytest test_craft_tool.py -v
 ```
 
 The test suite includes:
+
 - Basic functionality tests
 - Data integrity tests
 - Edge case handling
@@ -114,13 +321,14 @@ The test suite includes:
 
 ## Project Structure
 
-```
+```text
 simple-mcp-application/
-├── craft_tool.py          # Main FastMCP server implementation
-├── test_craft_tool.py     # Comprehensive test suite
-├── pyproject.toml         # Project configuration and dependencies
-├── README.md             # This file
-└── LICENSE               # MIT License
+├── craft_tool.py              # Main FastMCP server implementation
+├── langchain_mcp_example.py   # LangChain integration example
+├── test_craft_tool.py         # Comprehensive test suite
+├── pyproject.toml            # Project configuration and dependencies
+├── README.md                 # This file
+└── LICENSE                   # MIT License
 ```
 
 ## Contributing
