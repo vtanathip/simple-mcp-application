@@ -21,9 +21,15 @@ git clone https://github.com/vtanathip/simple-mcp-application.git
 cd simple-mcp-application
 ```
 
-2. Install dependencies:
+2. Install dependencies using uv:
 ```bash
-pip install -r requirements.txt
+uv sync
+```
+
+Or install manually:
+```bash
+uv add fastmcp pydantic
+uv add --dev pytest
 ```
 
 ## Usage
@@ -97,7 +103,7 @@ time_estimate = estimate_craft_time(["paper_airplane", "origami_crane"])
 
 Run the comprehensive test suite:
 ```bash
-pytest test_craft_tool.py -v
+uv run pytest test_craft_tool.py -v
 ```
 
 The test suite includes:
@@ -112,7 +118,7 @@ The test suite includes:
 simple-mcp-application/
 ├── craft_tool.py          # Main FastMCP server implementation
 ├── test_craft_tool.py     # Comprehensive test suite
-├── requirements.txt       # Python dependencies
+├── pyproject.toml         # Project configuration and dependencies
 ├── README.md             # This file
 └── LICENSE               # MIT License
 ```
