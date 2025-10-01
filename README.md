@@ -304,6 +304,275 @@ Once integrated, you can ask the AI assistant natural language questions like:
 
 The AI will automatically use the appropriate MCP tools to search, filter, and retrieve craft information to answer your questions.
 
+## Integration with LangGraph
+
+This MCP server can also be integrated with LangGraph for advanced conversational AI applications with state management and complex workflow orchestration.
+
+### Prerequisites for LangGraph Integration
+
+Install the additional LangGraph dependencies:
+
+```bash
+uv add langgraph langchain-core langchain-ollama mcp-use
+```
+
+### LangGraph Example Usage
+
+We've included a working LangGraph example at `langgraph_mcp_simple.py` that demonstrates:
+
+- **State Management**: Persistent conversation context across multiple interactions
+- **Advanced Workflow**: Multi-step craft planning and consultation
+- **Streaming Support**: Real-time response streaming for better user experience
+- **Error Recovery**: Robust error handling and graceful degradation
+
+```bash
+# 1. Ensure Ollama is running with a suitable model
+ollama pull llama3.2
+
+# 2. Run the LangGraph example
+uv run python langgraph_mcp_simple.py
+```
+
+The example provides both demo scenarios and an interactive chat mode.
+
+### LangGraph Features
+
+**State Persistence**: Conversations maintain context across multiple turns:
+
+```python
+# Example conversation flow
+Human: "I'm new to crafting. What can I make?"
+Assistant: [Uses MCP tools to list beginner-friendly crafts]
+Human: "I have paper and scissors available"  
+Assistant: [Remembers context, searches by materials]
+Human: "Perfect! Give me instructions for the paper airplane"
+Assistant: [Provides detailed step-by-step instructions]
+```
+
+**Advanced Planning Scenarios**:
+
+**Multi-Project Planning Session**:
+```
+Human: I want to plan a 3-hour crafting session for this weekend
+Agent: [Discovers available time and materials]
+Human: I have paper, paint, and thread available
+Agent: [Suggests compatible projects and estimates timing]
+Human: That sounds perfect! Can you create a step-by-step plan?
+Agent: [Provides detailed timeline and material preparation steps]
+```
+
+**Progressive Skill Development**:
+```
+Human: I've mastered paper airplanes, what's next?
+Agent: [Analyzes skill progression and suggests origami crane]
+Human: How difficult is the origami crane compared to what I know?
+Agent: [Provides detailed comparison and learning pathway]
+```
+
+### LangGraph Architecture
+
+The LangGraph integration uses a simple but powerful architecture:
+
+```python
+# Core components
+class ConversationState(TypedDict):
+    messages: Annotated[List[BaseMessage], add_messages]
+
+class LangGraphCraftAgent:
+    def __init__(self):
+        self.mcp_agent = None  # mcp-use MCPAgent
+        self.graph_app = None  # LangGraph compiled workflow
+        
+    async def _conversation_node(self, state):
+        # Process messages through MCP agent
+        response = await self.mcp_agent.run(user_message)
+        return {"messages": [AIMessage(content=response)]}
+```
+
+**Key Benefits**:
+
+- ✅ **Conversation Memory**: Maintains context across interactions
+- ✅ **Tool Integration**: Seamlessly uses all FastMCP craft tools
+- ✅ **Streaming Responses**: Real-time token streaming for better UX
+- ✅ **Error Handling**: Graceful fallback when tools fail
+- ✅ **Extensible**: Easy to add new nodes and conversation flows
+
+### Advanced LangGraph Customization
+
+For more complex workflows, you can extend the conversation graph:
+
+```python
+# Add specialized nodes for different conversation phases
+workflow.add_node("discovery", discovery_node)      # Craft exploration
+workflow.add_node("planning", planning_node)        # Project planning  
+workflow.add_node("instruction", instruction_node)  # Step-by-step guidance
+workflow.add_node("troubleshoot", troubleshoot_node) # Problem solving
+
+# Define conversation flow
+workflow.add_conditional_edges(
+    "discovery",
+    route_conversation,
+    {
+        "planning": "planning",
+        "instruction": "instruction", 
+        "end": END
+    }
+)
+```
+
+This allows for sophisticated conversation flows that adapt based on user needs and conversation context.
+
+## Testing
+
+## Advanced Integration with LangGraph + FastMCP HTTP Transport
+
+For more sophisticated conversational AI with state management and streaming capabilities, we provide a LangGraph integration that communicates with FastMCP over HTTP transport. This enables advanced features like multi-step planning, conversation state persistence, and real-time streaming responses.
+
+### Prerequisites for LangGraph Integration
+
+```bash
+# Install additional dependencies
+uv add langgraph httpx aiohttp
+
+# Ensure Ollama is running with a suitable model
+ollama pull llama3.2
+
+# Start FastMCP server with HTTP transport (if not using the default stdio transport)
+python craft_tool.py  # Default FastMCP server
+```
+
+### Quick Start with LangGraph Example
+
+We've included a comprehensive LangGraph example at `langgraph_mcp_example.py`:
+
+```bash
+# Run the advanced LangGraph example
+uv run python langgraph_mcp_example.py
+```
+
+**LangGraph Integration Features**:
+
+- 🧠 **State Management**: Persistent conversation state across multiple interactions
+- 🔄 **Multi-Step Planning**: Guides users through discovery → selection → planning → execution
+- 📡 **HTTP Streaming**: Real-time streaming responses with FastMCP HTTP transport
+- 💾 **Session Persistence**: Maintains context and progress across conversations
+- 🎯 **Smart Stage Detection**: Automatically progresses conversation through crafting stages
+- 🛠️ **Advanced Error Handling**: Robust error recovery and resource cleanup
+
+### LangGraph Architecture Overview
+
+The LangGraph integration uses a state machine approach:
+
+1. **Discovery Stage**: Help users explore available crafts and preferences
+2. **Selection Stage**: Narrow down choices based on materials, time, and skill
+3. **Planning Stage**: Provide detailed instructions and material lists
+4. **Execution Stage**: Offer tips and troubleshooting during crafting
+
+```python
+from langgraph_mcp_example import CraftPlanningAgent
+
+# Initialize the advanced agent
+agent = CraftPlanningAgent(model_name="llama3.2")
+await agent.initialize()
+
+# Start interactive session with state persistence
+interface = CraftPlanningInterface(agent)
+await interface.interactive_session()
+```
+
+### HTTP Transport Configuration
+
+The LangGraph example communicates with FastMCP via HTTP transport:
+
+```python
+# FastMCP HTTP Client configuration
+client = FastMCPHTTPClient("http://localhost:8000")
+
+# Tool calling over HTTP with streaming support
+response = await client.call_tool("list_craft_items", {})
+
+# Streaming tool calls (if supported by server)
+async for chunk in client.stream_tool_call("get_craft_details", {"item_id": "origami_crane"}):
+    print(chunk)
+```
+
+### Advanced Usage Examples
+
+**Multi-Project Planning Session**:
+```
+Human: I want to plan a 3-hour crafting session for this weekend
+Agent: [Discovers available time and materials]
+Human: I have paper, paint, and thread available
+Agent: [Suggests compatible projects and estimates timing]
+Human: That sounds perfect! Can you create a step-by-step plan?
+Agent: [Provides detailed timeline and material preparation steps]
+```
+
+**Progressive Skill Development**:
+```
+Human: I've mastered paper airplanes, what's next?
+Agent: [Analyzes skill progression and suggests origami crane]
+Human: How difficult is the origami crane compared to what I know?
+Agent: [Provides detailed comparison and learning pathway]
+```
+
+### Configuration Options
+
+**LangGraph State Configuration**:
+```python
+# Custom state tracking
+state = {
+    "available_materials": ["paper", "scissors", "paint"],
+    "time_budget": "2 hours",
+    "difficulty_preference": "medium",
+    "planning_stage": "discovery"
+}
+```
+
+**Streaming Callback Setup**:
+```python
+def streaming_callback(token):
+    print(token, end="", flush=True)
+
+response, state = await agent.chat_stream(
+    "What can I make?", 
+    thread_id="session_123",
+    streaming_callback=streaming_callback
+)
+```
+
+### Error Handling and Recovery
+
+The LangGraph integration includes comprehensive error handling:
+
+```python
+try:
+    # Initialize with automatic retry logic
+    if not await agent.initialize():
+        print("Initialization failed - check server status")
+        
+    # Robust conversation handling
+    response, state = await agent.chat_stream(message, thread_id)
+    
+except Exception as e:
+    logger.error(f"Session error: {e}")
+    # State is preserved for recovery
+    
+finally:
+    # Automatic resource cleanup
+    await agent.cleanup()
+```
+
+### Performance and Scalability
+
+- **Async/Await**: Fully asynchronous for high concurrency
+- **Connection Pooling**: Efficient HTTP connection reuse
+- **State Checkpointing**: Persistent conversation state management
+- **Streaming Responses**: Real-time user feedback
+- **Resource Management**: Automatic cleanup and connection handling
+
+This LangGraph integration demonstrates production-ready patterns for building sophisticated conversational AI applications with MCP tool integration.
+
 ## Testing
 
 Run the comprehensive test suite:
