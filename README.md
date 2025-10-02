@@ -435,7 +435,7 @@ For more sophisticated conversational AI with state management and streaming cap
 uv add langgraph httpx aiohttp
 
 # Ensure Ollama is running with a suitable model
-ollama pull llama3.2
+ollama serve
 
 # Start FastMCP server with HTTP transport (if not using the default stdio transport)
 python craft_tool.py  # Default FastMCP server
